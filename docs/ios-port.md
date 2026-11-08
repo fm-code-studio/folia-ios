@@ -5,8 +5,13 @@ This is how Folia runs on iOS, and what had to change to get it there.
 The short version: **the web build is the app**. The eight lyrics animations, the
 lyric engine, the local music library, the AI theme generator and the mod-less
 everything else are the same React bundle the web and desktop builds run. What iOS
-adds is a native shell around it, plus the four things the iOS web view cannot do
-on its own.
+adds is a native shell around it.
+
+> **This build ships without Folia's own native plugin.** It is assembled from
+> Capacitor and its official plugins only, so the four gaps below (the local library,
+> the window chrome, the lock screen, the audio session) have no native side: the
+> local library reports itself as unavailable, and the rest are no-ops. The plugin
+> lives in the history of this repository, not in the build.
 
 ---
 
@@ -15,7 +20,7 @@ on its own.
 | Piece | Where it lives | Why |
 |---|---|---|
 | The player | `src/`, unchanged | The desktop app and the web build already share it. |
-| The native bridge | `plugins/folia-native/` | The iOS-only half: the library, the chrome, the lock screen, the audio session. |
+| The native bridge | `src/platform/nativeBridge.ts` | What a build without the plugin has left: the calls, none of the native side. |
 | The shell | `ios/` | Capacitor's Xcode project. |
 | The platform question | `src/platform/index.ts` | One place that answers "which runtime am I in". |
 
@@ -136,7 +141,7 @@ open App.xcworkspace
 `dist/` into `ios/App/public/`.
 
 The project is a workspace, not a project: open `App.xcworkspace`, or the
-`FoliaNative` pod will not be found.
+Capacitor pods will not be found.
 
 Then, in Xcode: set your team on the `App` target, choose a signing identity, pick a
 device, and run.

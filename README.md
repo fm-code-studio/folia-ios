@@ -162,7 +162,7 @@ Linux 包、Wayland / Hyprland 遥控窗和桌面端细节见 [技术与开发�
 | 方式 | 说明 |
 | --- | --- |
 | **PWA（推荐）** | 部署 Web 版本或自托管版本后，在 Chrome for Android / iOS Safari 中将网页添加到主屏幕，即可作为 PWA 应用使用。 |
-| **iOS（本仓库）** | 仓库内已包含完整的 iOS 工程（`ios/`）与原生桥接插件（`plugins/folia-native/`），可用 Capacitor 打包为 App Store 应用。构建步骤与原生侧改动见 [iOS 移植说明](docs/ios-port.md)。**不上架也能出 IPA**（免费 Apple ID 即可），见 [生成 IPA 指南](docs/ios-ipa.md)；**没有网络的机器也能构建**，见 [离线构建指南](docs/ios-offline-build.md)。 |
+| **iOS（本仓库）** | 仓库内已包含完整的 iOS 工程（`ios/`），用 Capacitor 的官方插件打包为 App。构建步骤与原生侧改动见 [iOS 移植说明](docs/ios-port.md)。**不上架也能出 IPA**（免费 Apple ID 即可），见 [生成 IPA 指南](docs/ios-ipa.md)；**没有网络的机器也能构建**，见 [离线构建指南](docs/ios-offline-build.md)。 |
 | **社区移植版（Android）** | [maimai993/folia-sonnet](https://github.com/maimai993/folia-sonnet) · [whycfawa/folia-android](https://github.com/whycfawa/folia-android) |
 | **自行打包（Android）** | 有一定技术基础的用户可以用 Capacitor 将 Web 版本打包为可安装的 APK，参考示范仓库 [chthollyphile/folia-sonnet](https://github.com/chthollyphile/folia-sonnet)。 |
 

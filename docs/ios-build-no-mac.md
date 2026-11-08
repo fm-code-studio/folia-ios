@@ -55,7 +55,6 @@ Folia 是公开仓库（AGPL-3.0），所以这条路是**零成本**的。
 
 ```
 npm ci                        # 装依赖
-npm run build:plugin          # 编译插件的 TS（dist/ 被 gitignore 了，CI 上必须重编）
 npm run build:ios             # 编译 Web 资源
 npx cap sync ios              # 同步到 ios/，并更新 Podfile
 pod install --no-repo-update  # 解析 Pod
@@ -139,8 +138,8 @@ xcodebuild archive            # 归档（跳过签名）
    `does not contain a scheme named App`。仓库里已经补上了
    `ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme`。
 
-2. **`plugins/folia-native/dist` 被 gitignore 了。** CI 上必须先
-   `npm run build:plugin`，否则 Capacitor 认不出这个插件。
+2. **这个构建不含自研原生插件。** 只装 Capacitor 的官方插件，所以本地音乐库、
+   锁屏信息、沉浸式窗口、运行时配置注入都不生效；`npm ci` 之后不需要再编译插件。
 
 3. **`cap sync` 会重写 Podfile。** 它会用正则替换 `def capacitor_pods` 到
    `end` 之间的内容。替换结果和仓库里的版本是一致的（本地全部 `:path` 引用），

@@ -17,14 +17,10 @@ def capacitor_pods
   pod 'CapacitorPreferences', :path => '../../node_modules/@capacitor/preferences'
   pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
   pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
-  pod 'FoliaNative', :path => '../../plugins/folia-native'
 end
 
 target 'App' do
   capacitor_pods
-  # Folia's own native bridge (FoliaNative) is added to capacitor_pods by
-  # `npx cap sync ios`, which knows every plugin the app depends on. Adding it
-  # here as well would declare the same pod twice, and CocoaPods refuses that.
 end
 
 post_install do |installer|

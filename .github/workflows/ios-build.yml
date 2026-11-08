@@ -58,11 +58,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 插件的 TypeScript 要先编译成 dist/，Capacitor 才会把它识别成插件。
-      # plugins/folia-native/dist 被 .gitignore 忽略了，所以 CI 上必须重新构建。
-      - name: Build native plugin
-        run: npm run build:plugin
-
       # 产出 Web 资源。FOLIA_TARGET=ios 会关掉 Service Worker，避免原生包里
       # 持续返回缓存的旧 index.html。
       - name: Build web assets
