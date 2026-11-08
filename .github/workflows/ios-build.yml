@@ -33,7 +33,8 @@ on:
       - "v*"
 
 permissions:
-  contents: read
+  # 发布 Release 需要写权限；构建本身只读代码。
+  contents: write
 
 concurrency:
   group: ios-build-${{ github.ref }}
@@ -166,3 +167,24 @@ jobs:
           path: build/ios/Folia.xcarchive
           retention-days: 7
           if-no-files-found: warn
+
+      # Artifact 存在 Azure 的 blob 上（*.blob.core.windows.net），国内常常连不上，
+      # 而且下载要登录。所以同时挂一份到 Release：Release 资源不需要登录，
+      # 国内镜像站也能转。tag 固定为 ios-unsigned，每次覆盖同一个文件。
+      - name: Publish release asset
+        # 组织如果把 GITHUB_TOKEN 设成只读，这一步会失败；它只是额外的下载出口，
+        # 不该让已经打好的 artifact 白打一次。
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="ios-unsigned"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --title "iOS 未签名包" \
+              --notes "iOS Build workflow 的产物。未签名，需要用 Sideloadly / AltStore 用自己的 Apple ID 重签后安装。" \
+              --latest=false
+          fi
+          gh release upload "$TAG" Folia-unsigned.ipa --clobber
+          echo "下载地址：https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/Folia-unsigned.ipa"

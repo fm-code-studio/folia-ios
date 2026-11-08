@@ -49,6 +49,17 @@ Folia 是公开仓库（AGPL-3.0），所以这条路是**零成本**的。
 4. 跑完在这次 run 的 **Artifacts** 区域下载 `Folia-unsigned-ipa`，
    里面是 `Folia-unsigned.ipa`。
 
+   如果下载卡住或超时，是 GitHub 把 artifact 放在 `*.blob.core.windows.net`
+   上（Azure），国内常常直连不通，而且下载要登录。这时走另一条路 —— 同一个
+   workflow 会把 IPA 挂到 Release 上，不需要登录：
+
+   ```
+   https://github.com/fm-code-studio/folia-ios/releases/download/ios-unsigned/Folia-unsigned.ipa
+   ```
+
+   连这个域名也慢的话，在地址前面加镜像前缀，例如
+   `https://gh-proxy.com/<上面的完整地址>`。
+
 整个过程 10~20 分钟，不用装任何东西。
 
 ### CI 里具体做了什么
