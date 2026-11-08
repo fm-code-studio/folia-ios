@@ -47,10 +47,10 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -152,7 +152,7 @@ jobs:
           ls -lh Folia-unsigned.ipa
 
       - name: Upload unsigned IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Folia-unsigned-ipa
           path: Folia-unsigned.ipa
@@ -160,7 +160,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload xcarchive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Folia-xcarchive
           path: build/ios/Folia.xcarchive
