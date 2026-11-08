@@ -2,7 +2,6 @@
 // Centralizes the secure-context requirement for browser local-library access.
 
 import { isNativeRuntime } from '../platform';
-import { nativeBridgeAvailable } from '../platform/nativeBridge';
 
 export interface LocalLibraryAvailability {
     supported: boolean;
@@ -14,14 +13,8 @@ export const getLocalLibraryAvailability = (): LocalLibraryAvailability => {
     if (window.electron) return { supported: true, reason: null };
     // The native shell picks the folder with the iOS document picker and serves it
     // over its own scheme, so it needs neither a secure context nor the File System
-    // Access API - but only when the build carries Folia's own plugin. A build made
-    // from the official plugins alone has no picker, so the feature is reported as
-    // unavailable instead of failing when it is used.
-    if (isNativeRuntime()) {
-        return nativeBridgeAvailable
-            ? { supported: true, reason: null }
-            : { supported: false, reason: 'file-system-api-unavailable' };
-    }
+    // Access API.
+    if (isNativeRuntime()) return { supported: true, reason: null };
     const currentLocation = window.location;
     if (!currentLocation) return { supported: false, reason: 'file-system-api-unavailable' };
     const isLocalhost = ['localhost', '127.0.0.1', '[::1]'].includes(currentLocation.hostname);

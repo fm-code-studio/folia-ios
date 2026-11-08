@@ -15,9 +15,9 @@
 // session, the taskbar buttons and the remote control window drive.
 
 import { useEffect, useRef } from 'react';
+import { FoliaNative } from 'folia-native';
 
 import { isNativeRuntime } from '../platform';
-import { FoliaNative, nativeBridgeAvailable } from '../platform/nativeBridge';
 import { useAppViewStore } from '../stores/useAppViewStore';
 import { selectDisplayPlayerState, usePlaybackStore } from '../stores/usePlaybackStore';
 import { PlayerState } from '../types';
@@ -48,7 +48,7 @@ export const useNativePlayerChrome = (refs: NativeTransportCommandRefs): void =>
     // The audio session is set up once: the music is played by the web view, and all
     // it needs is a session that keeps going when the screen locks.
     useEffect(() => {
-        if (!isNativeRuntime() || !nativeBridgeAvailable) return;
+        if (!isNativeRuntime()) return;
         void FoliaNative.configureAudioSession().catch((error) => {
             console.warn('[Native] Could not configure the audio session:', error);
         });
@@ -57,7 +57,7 @@ export const useNativePlayerChrome = (refs: NativeTransportCommandRefs): void =>
     // The lyrics stage is the immersive one: there the status bar and the home
     // indicator are in the way of the lyrics.
     useEffect(() => {
-        if (!isNativeRuntime() || !nativeBridgeAvailable) return;
+        if (!isNativeRuntime()) return;
         void FoliaNative.setImmersive({ enabled: view === 'player' }).catch((error) => {
             console.warn('[Native] Could not change the window chrome:', error);
         });
@@ -65,7 +65,7 @@ export const useNativePlayerChrome = (refs: NativeTransportCommandRefs): void =>
 
     // The lock screen's transport buttons come back as commands.
     useEffect(() => {
-        if (!isNativeRuntime() || !nativeBridgeAvailable) return;
+        if (!isNativeRuntime()) return;
 
         const handle = FoliaNative.addListener('remoteCommand', (event) => {
             const command = String((event as { command?: unknown })?.command ?? '');
@@ -117,7 +117,7 @@ export const useNativePlayerChrome = (refs: NativeTransportCommandRefs): void =>
     const hasTrack = Boolean(currentSong);
 
     useEffect(() => {
-        if (!isNativeRuntime() || !nativeBridgeAvailable) return;
+        if (!isNativeRuntime()) return;
 
         const report = async (position: number) => {
             if (!currentSong) {

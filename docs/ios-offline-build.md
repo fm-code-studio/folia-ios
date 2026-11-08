@@ -23,9 +23,10 @@ Folia 的 iOS 版是 **Capacitor 壳 + React 网页产物**，不是原生重写
 -> Fetching podspec for `CapacitorPreferences` from `../../node_modules/@capacitor/preferences`
 -> Fetching podspec for `CapacitorSplashScreen` from `../../node_modules/@capacitor/splash-screen`
 -> Fetching podspec for `CapacitorStatusBar` from `../../node_modules/@capacitor/status-bar`
+-> Fetching podspec for `FoliaNative`       from `../../plugins/folia-native`
 ```
 
-`Podfile.lock` 里八个依赖的 `EXTERNAL SOURCES` 全是 `:path:`，没有一个是 CDN 或 git 源。
+`Podfile.lock` 里九个依赖的 `EXTERNAL SOURCES` 全是 `:path:`，没有一个是 CDN 或 git 源。
 
 ### 一个曾经挡住路的东西，已经拆掉了
 
@@ -56,6 +57,7 @@ Pod installation complete! There are 9 dependencies from the Podfile and 9 total
 | 内容 | 体积 | 从哪来 | 作用 |
 |---|---|---|---|
 | `ios/` 目录 | ~30 MB | 本仓库（含 `App/public/` 已编译好的网页产物） | Xcode 工程 + 网页产物 |
+| `plugins/folia-native/` | 128 KB | 本仓库 | 自研原生插件（本地库、沉浸式、锁屏、音频会话） |
 | `node_modules/@capacitor/` | 3.4 MB | `npm install` 后的产物 | Pod 的 `:path` 源，**不能省** |
 | Xcode + 命令行工具 | 数十 GB | Apple | 编译器 |
 | CocoaPods | 数十 MB | `gem install cocoapods` | Pod 解析器 |

@@ -17,7 +17,7 @@
 // rather than as a handle, because a handle is not something the browser's storage
 // can keep.
 
-import { FoliaNative, type NativeFileEntry } from './nativeBridge';
+import { FoliaNative, type NativeFileEntry } from 'folia-native';
 
 import { isNativeRuntime } from './index';
 

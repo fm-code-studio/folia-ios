@@ -5,6 +5,7 @@
 #
 # 包里装的是「构建 iOS App 需要的全部东西」，不含 npm 依赖树：
 #   - ios/                Xcode 工程，含已编译好的网页产物（App/public/）
+#   - plugins/            自研原生插件
 #   - node_modules/@capacitor/   Pod 的 :path 源，不能省
 #   - tools/ios/          构建脚本
 #
@@ -27,6 +28,7 @@ info "检查前置条件"
 
 command -v npm >/dev/null 2>&1 || die "需要 npm"
 [[ -d node_modules/@capacitor/ios ]] || die "缺少 node_modules/@capacitor/ios，先跑 npm install"
+[[ -d plugins/folia-native ]] || die "缺少 plugins/folia-native"
 [[ -f ios/App/App/public/index.html ]] || die "缺少 ios/App/App/public/index.html，先跑 npm run build:ios && npx cap copy ios"
 
 if grep -qE ':git|cdn\.cocoapods\.org' ios/App/Podfile; then
@@ -48,6 +50,7 @@ tar czf "${OUT}" \
   --exclude='ios/App/App.xcworkspace/xcuserdata' \
   --exclude='.DS_Store' \
   ios/ \
+  plugins/ \
   node_modules/@capacitor/ \
   tools/ios/ \
   docs/ios-port.md \
