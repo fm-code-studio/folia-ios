@@ -3,6 +3,7 @@ import { WebPlugin } from '@capacitor/core';
 import type {
     FoliaNativePlugin,
     ListDirectoryOptions,
+    ListDirectoryResult,
     NativeRuntimeConfig,
     NowPlayingOptions,
     PickDirectoryOptions,
@@ -29,7 +30,7 @@ export class FoliaNativeWeb extends WebPlugin implements FoliaNativePlugin {
         throw this.notAvailable('readFile');
     }
 
-    async listDirectory(_options: ListDirectoryOptions): Promise<import('./definitions').NativeFileEntry[]> {
+    async listDirectory(_options: ListDirectoryOptions): Promise<ListDirectoryResult> {
         throw this.notAvailable('listDirectory');
     }
 

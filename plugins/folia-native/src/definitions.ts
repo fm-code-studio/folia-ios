@@ -75,6 +75,17 @@ export interface ListDirectoryOptions {
     path: string;
 }
 
+/**
+ * The contents of one directory.
+ *
+ * The list is nested under `entries` rather than being the result itself: Capacitor
+ * resolves a call with a dictionary on iOS, so a bare array cannot be the result.
+ */
+export interface ListDirectoryResult {
+    /** Every entry of the directory, one level deep. */
+    entries: NativeFileEntry[];
+}
+
 /** Options for the immersive window chrome. */
 export interface SetImmersiveOptions {
     /** Hide the status bar and the home indicator. */
@@ -129,7 +140,7 @@ export interface FoliaNativePlugin extends Plugin {
     readFile(options: ReadFileOptions): Promise<ReadFileResult>;
 
     /** List one directory of a picked folder. */
-    listDirectory(options: ListDirectoryOptions): Promise<NativeFileEntry[]>;
+    listDirectory(options: ListDirectoryOptions): Promise<ListDirectoryResult>;
 
     /** Remove a picked folder and everything copied out of it. */
     removeLibrary(options: { libraryId: string }): Promise<void>;

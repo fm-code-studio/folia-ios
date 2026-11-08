@@ -91,15 +91,19 @@ public class FoliaNativePlugin: CAPPlugin, CAPBridgedPlugin {
 
         let relativePath = call.getString("path") ?? ""
         let entries = FoliaLibraryStore.shared.entries(libraryId: libraryId, relativePath: relativePath)
-        call.resolve(entries.map { entry in
-            [
-                "path": entry.path,
-                "name": entry.name,
-                "size": entry.size,
-                "isDirectory": entry.isDirectory,
-                "modifiedAt": entry.modifiedAt,
-            ]
-        })
+        // Capacitor can only resolve a call with a dictionary, so the list is nested
+        // under `entries` instead of being the result itself.
+        call.resolve([
+            "entries": entries.map { entry in
+                [
+                    "path": entry.path,
+                    "name": entry.name,
+                    "size": entry.size,
+                    "isDirectory": entry.isDirectory,
+                    "modifiedAt": entry.modifiedAt,
+                ]
+            },
+        ])
     }
 
     /// Removes a picked folder and everything copied out of it.
@@ -173,7 +177,7 @@ extension FoliaNativePlugin: UIDocumentPickerDelegate {
         pendingPickerCall = nil
 
         guard let picked = urls.first else {
-            call.resolve(nil)
+            call.resolve()
             return
         }
 
@@ -209,6 +213,6 @@ extension FoliaNativePlugin: UIDocumentPickerDelegate {
     public func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
         guard let call = pendingPickerCall else { return }
         pendingPickerCall = nil
-        call.resolve(nil)
+        call.resolve()
     }
 }

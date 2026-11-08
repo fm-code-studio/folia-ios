@@ -225,7 +225,7 @@ export const rebuildNativeDirectoryHandle = async (
     if (!isNativeRuntime()) return null;
 
     try {
-        const entries = await FoliaNative.listDirectory({
+        const { entries } = await FoliaNative.listDirectory({
             libraryId: ref.libraryId,
             path: '',
         });
