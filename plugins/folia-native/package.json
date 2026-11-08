@@ -1,0 +1,38 @@
+{
+  "name": "folia-native",
+  "version": "1.0.0",
+  "description": "Folia's native bridge: the local music library, the immersive chrome, the lock screen metadata and the audio session on iOS.",
+  "main": "dist/esm/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "files": [
+    "dist/",
+    "ios/Sources",
+    "Package.swift",
+    "FoliaNative.podspec"
+  ],
+  "author": "chthollyphile",
+  "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chthollyphile/folia-major.git"
+  },
+  "keywords": [
+    "capacitor",
+    "plugin",
+    "native",
+    "folia"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist"
+  },
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=7.0.0"
+  }
+}

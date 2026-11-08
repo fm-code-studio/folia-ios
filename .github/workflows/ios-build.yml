@@ -1,0 +1,168 @@
+name: iOS Build
+
+# 在 GitHub 托管的 macOS runner 上构建 Folia 的 iOS App 并导出 IPA。
+#
+# 为什么需要它：iOS 的最终链接、签名和打包只能在 macOS 上完成，Windows/Linux
+# 上跑不了 xcodebuild。这个 workflow 把整套构建搬到云端，你只需要一个 GitHub
+# 账号，不需要自己装 Xcode。
+#
+# 公开仓库用 GitHub 托管的 macOS runner 是免费的（private 仓库按 macOS 的倍率
+# 计费，macOS runner 的分钟消耗是 Linux 的 10 倍）。
+#
+# 产出：
+#   - Folia-unsigned.ipa   未签名的真机包，给 Sideloadly / AltStore 重签用
+#   - Folia.xcarchive      归档，需要在 Xcode 里用自己的证书重新导出时用
+#
+# 用法：
+#   1. 在 Actions 页面手动触发（workflow_dispatch），或给 tag 打个 v* 触发
+#   2. 跑完后在 Artifacts 里下载 Folia-unsigned-ipa
+
+on:
+  workflow_dispatch:
+    inputs:
+      scheme:
+        description: "要构建的 scheme"
+        required: false
+        default: "App"
+      configuration:
+        description: "构建配置"
+        required: false
+        default: "Release"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build iOS IPA
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v6
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 插件的 TypeScript 要先编译成 dist/，Capacitor 才会把它识别成插件。
+      # plugins/folia-native/dist 被 .gitignore 忽略了，所以 CI 上必须重新构建。
+      - name: Build native plugin
+        run: npm run build:plugin
+
+      # 产出 Web 资源。FOLIA_TARGET=ios 会关掉 Service Worker，避免原生包里
+      # 持续返回缓存的旧 index.html。
+      - name: Build web assets
+        run: npm run build:ios
+
+      # cap sync 会做三件事：把 web 产物复制进 ios/App/App/public、把插件的
+      # 原生代码同步到 ios/、更新 Podfile 并跑 pod install。
+      #
+      # Podfile 里每个 pod 都是本地 :path 引用，不来自 CocoaPods CDN，
+      # 所以这一步不需要访问 CocoaPods 的 spec 仓库。
+      - name: Sync Capacitor
+        run: npx cap sync ios
+
+      # cap sync 里的 pod install 没带 --no-repo-update，会去更新 trunk 仓库。
+      # 这里没有依赖需要从 trunk 拉，所以明确禁止更新，避免无谓的网络请求，
+      # 同时保证解析结果与 Podfile.lock 完全一致。
+      - name: Install Pods
+        working-directory: ios/App
+        run: pod install --no-repo-update
+
+      - name: Show build environment
+        run: |
+          xcodebuild -version
+          pod --version
+          xcodebuild -workspace ios/App/App.xcworkspace -list
+
+      # 归档。这一步会产出 Release 的真机 App，但不做签名：
+      # 未签名的 App 不能直接装到手机上，这是正常的——后面用 Sideloadly 或
+      # AltStore 重签即可（免费 Apple ID 签出来的包 7 天有效）。
+      #
+      # CODE_SIGNING_ALLOWED=NO 让 xcodebuild 跳过签名环节，这样在 CI 上
+      # 不需要任何证书，也不会去连 Apple 的签名服务。
+      - name: Archive
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme "${{ github.event.inputs.scheme || 'App' }}" \
+            -configuration "${{ github.event.inputs.configuration || 'Release' }}" \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/ios \
+            -archivePath build/ios/Folia.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            archive
+
+      # 把归档里的 App.app 重新打包成未签名的 IPA。
+      #
+      # IPA 的结构说白了就是个 zip：根目录一个 Payload/，里面放 App.app。
+      # 所以这里不用 xcodebuild -exportArchive（那个要求必须有有效签名），
+      # 直接手工组 zip 就行。
+      #
+      # 注意不能只是 zip 一下就完事：iOS 要求 .app 里不能有残留的签名信息，
+      # 所以要先删掉 _CodeSignature 和 embedded.mobileprovision，再补一个
+      # 空白的 CodeResources，避免重签时读到旧的哈希。
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          APP_PATH="build/ios/Folia.xcarchive/Products/Applications/App.app"
+          STAGE="$(mktemp -d)"
+
+          if [[ ! -d "${APP_PATH}" ]]; then
+            echo "归档里没有找到 App.app：${APP_PATH}" >&2
+            exit 1
+          fi
+
+          # 清掉旧签名残留
+          rm -rf "${APP_PATH}/_CodeSignature"
+          rm -f "${APP_PATH}/embedded.mobileprovision"
+
+          mkdir -p "${STAGE}/Payload"
+          cp -R "${APP_PATH}" "${STAGE}/Payload/App.app"
+
+          # 重签工具（Sideloadly/AltStore）会自己重算签名，这里给一份空白的
+          # CodeResources，避免里面的哈希指向已经不存在的旧签名。
+          mkdir -p "${STAGE}/Payload/App.app/_CodeSignature"
+          printf '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n</dict>\n</plist>\n' \
+            > "${STAGE}/Payload/App.app/_CodeSignature/CodeResources"
+
+          cd "${STAGE}"
+          zip -qry "$GITHUB_WORKSPACE/Folia-unsigned.ipa" Payload
+          cd "$GITHUB_WORKSPACE"
+
+          echo "--- IPA 内容结构 ---"
+          unzip -l Folia-unsigned.ipa | head -20
+          ls -lh Folia-unsigned.ipa
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Folia-unsigned-ipa
+          path: Folia-unsigned.ipa
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload xcarchive
+        uses: actions/upload-artifact@v4
+        with:
+          name: Folia-xcarchive
+          path: build/ios/Folia.xcarchive
+          retention-days: 7
+          if-no-files-found: warn

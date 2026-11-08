@@ -1,0 +1,31 @@
+{
+  "appId": "top.izuna.foliamajor.ios",
+  "appName": "Folia",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": true,
+    "zoomEnabled": false,
+    "backgroundColor": "#09090b",
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 600,
+      "backgroundColor": "#09090b",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": false
+    },
+    "StatusBar": {
+      "overlaysWebView": true,
+      "style": "DARK",
+      "backgroundColor": "#00000000"
+    },
+    "Keyboard": {
+      "resize": "body",
+      "resizeOnFullScreen": true
+    }
+  }
+}

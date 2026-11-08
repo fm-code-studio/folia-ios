@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Folia</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<!-- arm64 only. The armv7 value the Capacitor template still carries
+		     dates from the 32-bit era; every device that can run iOS 14 is
+		     arm64, and App Store Connect rejects a build that declares a
+		     capability the binary does not have. -->
+		<string>arm64</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+	<!-- The player draws under the notch, so the status bar is hidden by the app
+	     itself rather than by the system. -->
+	<key>UIStatusBarHidden</key>
+	<true/>
+	<!-- The music is played by the web view; this is what lets it keep playing with
+	     the screen locked. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+	<!-- The music APIs Folia talks to are reached over plain HTTP from several
+	     hosts, and their addresses change. See docs/ios-port.md for how to narrow
+	     this down to the hosts a given build actually uses. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<!-- The app sends no data to a server it does not control, and uses no
+	     encryption beyond what the system provides, so it is exempt from the
+	     export compliance question. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- The local music library is read out of the app's own container. Turning the
+	     file sharing on lets a user drop songs in with Finder or the Files app,
+	     which is how a library gets onto a phone in the first place. -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<!-- Folia's own build identity, shown in the settings. -->
+	<key>FoliaAppVersionLabel</key>
+	<string>Realeco</string>
+</dict>
+</plist>
