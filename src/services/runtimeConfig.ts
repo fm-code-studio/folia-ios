@@ -1,5 +1,7 @@
 // 当前文件：读取 Docker 注入的 Web 运行时配置，并兼容既有 Vite 构建变量。
 
+import { getApiBaseOverrides } from './apiBaseConfig';
+
 export type WebAiProvider = 'gemini' | 'openai';
 
 /** 音源后端的地址来源。 */
@@ -26,6 +28,10 @@ export const getWebAiProvider = (): WebAiProvider => {
  * 页面启动前注入 `__FOLIA_RUNTIME_CONFIG__`。这里先读运行时，读不到再退回构建变量。
  */
 export const getRuntimeApiBase = (kind: RuntimeApiBaseKind): string => {
+    // 设置页填过的地址最优先：包发出去之后构建变量改不了，用户只能靠这里换服务器。
+    const overridden = getApiBaseOverrides()[kind];
+    if (overridden) return overridden;
+
     if (typeof window !== 'undefined') {
         const runtime = window.__FOLIA_RUNTIME_CONFIG__;
         const specific = runtime?.[`${kind}ApiBase`];
@@ -54,8 +60,9 @@ export const getRuntimeApiBase = (kind: RuntimeApiBaseKind): string => {
     return (viteValue || processValue).trim().replace(/\/$/, '');
 };
 
-/** 运行时地址是否来自原生侧（而不是构建变量）。 */
+/** 运行时地址是否来自原生侧（而不是构建变量）。设置里填的也算。 */
 export const hasRuntimeApiBase = (kind: RuntimeApiBaseKind): boolean => {
+    if (getApiBaseOverrides()[kind]) return true;
     if (typeof window === 'undefined') return false;
     const runtime = window.__FOLIA_RUNTIME_CONFIG__;
     if (!runtime) return false;

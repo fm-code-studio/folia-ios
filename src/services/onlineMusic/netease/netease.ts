@@ -6,6 +6,7 @@ import { withLoginRequestLimit } from '../login/loginRequestLimit';
 import { withOnlineRequestLimit } from '../failure/onlineRequestLimit';
 import { errorFields } from '../../../utils/errorText';
 import { getRuntimeApiBase } from '../../runtimeConfig';
+import { API_BASE_CHANGED_EVENT } from '../../apiBaseConfig';
 
 type UnavailableSongReplacement = {
   replacementSong: SongResult;
@@ -16,6 +17,14 @@ type UnavailableSongReplacement = {
 // Robustly check for environment variable, falling back if undefined
 let API_BASE: string | null = null;
 let songCopyrightRecommendationApiSupported: boolean | null = null;
+
+// 设置在设置页里换了服务器：记住的地址和它的能力（版权推荐接口）都作废，下一次请求重新解析。
+if (typeof window !== 'undefined') {
+  window.addEventListener(API_BASE_CHANGED_EVENT, () => {
+    API_BASE = null;
+    songCopyrightRecommendationApiSupported = null;
+  });
+}
 
 const getElectronBridge = () => {
   if (typeof window === 'undefined' || !window) {

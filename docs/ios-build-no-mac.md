@@ -44,9 +44,10 @@ Folia 是公开仓库（AGPL-3.0），所以这条路是**零成本**的。
 
 2. 进仓库的 **Actions** 页面，找到 **iOS Build**。
 
-3. 点 **Run workflow**，选分支。三个 `*_api_base` 输入框填后端地址，形如
+3. 点 **Run workflow**，选分支。三个 `*_api_base` 输入框可以填后端地址，形如
    `https://你的域名/netease`（自建 Docker 全栈时，路径前缀固定是 `/netease`、
-   `/kugou`、`/qq`）。不填也能出包，只是 App 里的在线音乐不可用。
+   `/kugou`、`/qq`）。**也可以留空**：App 里「设置 → 连接与集成 → 在线音乐服务器」
+   能直接改，改完立即生效，不用重新构建。
 
 4. 跑完在这次 run 的 **Artifacts** 区域下载 `Folia-unsigned-ipa`，
    里面是 `Folia-unsigned.ipa`。
