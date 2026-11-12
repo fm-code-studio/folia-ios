@@ -60,6 +60,11 @@
 	<!-- The music APIs Folia talks to are reached over plain HTTP from several
 	     hosts, and their addresses change. See docs/ios-port.md for how to narrow
 	     this down to the hosts a given build actually uses. -->
+	<!-- A self-hosted backend on the same Wi-Fi is reached over a local address,
+	     which iOS 14 and later only allows once the user has agreed to it. Without
+	     this string the system has nothing to show and refuses the request. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>连接你在局域网里自建的音乐服务端，用来登录和播放线上歌曲。</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
