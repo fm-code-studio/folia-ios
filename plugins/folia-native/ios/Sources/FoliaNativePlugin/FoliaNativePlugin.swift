@@ -155,26 +155,53 @@ public class FoliaNativePlugin: CAPPlugin, CAPBridgedPlugin {
     /// keep playing with the screen locked: the session has to be a playback one, and
     /// the app has to declare the background audio mode.
     @objc func configureAudioSession(_ call: CAPPluginCall) {
-        do {
-            try Self.activatePlaybackSession()
-            call.resolve()
-        } catch {
-            call.reject("Could not configure the audio session: \(error.localizedDescription)")
+        Self.sessionQueue.async {
+            do {
+                try Self.activatePlaybackSessionNow()
+                call.resolve()
+            } catch {
+                call.reject("Could not configure the audio session: \(error.localizedDescription)")
+            }
         }
     }
 
     // MARK: - The audio session's lifetime
 
+    /// Session work runs here, never on the main thread.
+    ///
+    /// `setActive(true)` blocks until the media server answers, and the foreground notification
+    /// arrives while WebKit is activating audio for the page: the two waiting on each other is
+    /// enough to freeze the interface long enough for the system to take a hang report (one was
+    /// taken with this call on the main thread). Doing it on a queue of its own also keeps the
+    /// calls apart from one another.
+    private static let sessionQueue = DispatchQueue(label: "top.izuna.folia.audio-session")
+
+    /// Whether the session is believed to be active. Only touched on `sessionQueue`.
+    private static var sessionActive = false
+
     /// Puts the session into the playback category and makes it active.
     ///
-    /// Called when the page asks for it, and again when the system hands the session back:
-    /// an interruption (a call, Siri, another app taking the output) deactivates it, and
-    /// nothing in the web view ever activates it again, so playback would stay silent until
-    /// the app is restarted.
-    private static func activatePlaybackSession() throws {
+    /// Called when the page asks for it, when an interruption ends, and when the app comes back
+    /// to the foreground: the system deactivates the session for a call, Siri or another app
+    /// taking the output, and nothing in the web view ever activates it again.
+    private static func activatePlaybackSessionNow() throws {
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playback, mode: .default, options: [])
         try session.setActive(true)
+        sessionActive = true
+    }
+
+    /// Activates the session on `sessionQueue`, unless it is already active and `forced` is false.
+    private static func activatePlaybackSession(forced: Bool) {
+        sessionQueue.async {
+            guard forced || !sessionActive else { return }
+            do {
+                try activatePlaybackSessionNow()
+            } catch {
+                sessionActive = false
+                print("[FoliaNative] could not activate the audio session: \(error.localizedDescription)")
+            }
+        }
     }
 
     private func startWatchingAudioSession() {
@@ -187,23 +214,27 @@ public class FoliaNativePlugin: CAPPlugin, CAPBridgedPlugin {
             queue: .main
         ) { notification in
             guard let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
-                  let type = AVAudioSession.InterruptionType(rawValue: raw),
-                  type == .ended else { return }
-            do {
-                try FoliaNativePlugin.activatePlaybackSession()
-            } catch {
-                print("[FoliaNative] could not re-activate the audio session: \(error.localizedDescription)")
+                  let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+            switch type {
+            case .began:
+                // From here until the interruption ends the system owns the session.
+                FoliaNativePlugin.sessionQueue.async { FoliaNativePlugin.sessionActive = false }
+            case .ended:
+                FoliaNativePlugin.activatePlaybackSession(forced: true)
+            @unknown default:
+                break
             }
         })
 
         // Coming back to the foreground is the other moment the session can be inactive, for
-        // example after a long call: activating an already active session is a no-op.
+        // example after a long call. Not forced: a session that never lost the audio is left alone,
+        // because re-activating it is the call that blocks.
         sessionObservers.append(center.addObserver(
             forName: UIApplication.didBecomeActiveNotification,
             object: nil,
             queue: .main
         ) { _ in
-            try? FoliaNativePlugin.activatePlaybackSession()
+            FoliaNativePlugin.activatePlaybackSession(forced: false)
         })
     }
 

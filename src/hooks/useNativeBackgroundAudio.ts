@@ -65,19 +65,32 @@ export const useNativeBackgroundAudio = (): void => {
 
         const start = () => {
             void element.play().catch((error) => {
-                // Autoplay policy refuses until the page has had a gesture; the user's next tap
-                // starts the song, and this element follows it a moment later.
+                // The web view gives each media element its own autoplay permission, and it is
+                // granted by a gesture - the tap that started the song was spent on the deck.
+                // The listener below is that gesture, so this failure is expected exactly once.
                 console.warn('[Native] background keep-alive did not start', error);
             });
         };
         start();
+
+        // The first touch anywhere: the element is started inside the gesture, which is the only
+        // moment the web view will allow it to sound.
+        const onGesture = () => {
+            if (element.paused) element.play().catch(() => {});
+        };
+        document.addEventListener('pointerdown', onGesture, { once: true, capture: true });
+        document.addEventListener('keydown', onGesture, { once: true, capture: true });
         // iOS occasionally pauses the element on its own when the session is interrupted; a paused
         // keep-alive means the next suspension takes the music with it, so it is put back.
         retryRef.current = window.setInterval(() => {
             if (element.paused) start();
         }, KEEP_ALIVE_RETRY_MS);
 
-        return stopRetry;
+        return () => {
+            stopRetry();
+            document.removeEventListener('pointerdown', onGesture, { capture: true });
+            document.removeEventListener('keydown', onGesture, { capture: true });
+        };
     }, [playing]);
 
     useEffect(() => () => {
