@@ -28,6 +28,18 @@ on:
         description: "构建配置"
         required: false
         default: "Release"
+      netease_api_base:
+        description: "网易云 API 地址（例：https://api.example.com）。留空则在线音乐不可用"
+        required: false
+        default: ""
+      kugou_api_base:
+        description: "酷狗 API 地址，留空则酷狗不可用"
+        required: false
+        default: ""
+      qq_api_base:
+        description: "QQ 音乐 API 地址，留空则 QQ 音乐不可用"
+        required: false
+        default: ""
   push:
     tags:
       - "v*"
@@ -66,6 +78,32 @@ jobs:
 
       # 产出 Web 资源。FOLIA_TARGET=ios 会关掉 Service Worker，避免原生包里
       # 持续返回缓存的旧 index.html。
+      # 原生壳里没有构建变量可言，页面只能在构建时把后端地址打进包里。
+      # 地址留空时对应的平台在 App 里就是「未配置」，登录与搜索都用不了。
+      #
+      # 值走 env 而不是直接插进脚本：workflow_dispatch 的输入是任意文本，插进 `run:`
+      # 就等于把 shell 交给填表的人。tag 触发没有 inputs，退到仓库变量。
+      - name: Write runtime API addresses
+        env:
+          NETEASE_API_BASE: ${{ inputs.netease_api_base || vars.NETEASE_API_BASE }}
+          KUGOU_API_BASE: ${{ inputs.kugou_api_base || vars.KUGOU_API_BASE }}
+          QQ_API_BASE: ${{ inputs.qq_api_base || vars.QQ_API_BASE }}
+        run: |
+          set -euo pipefail
+          : > .env.local
+          write() {
+            [ -n "$2" ] || return 0
+            printf '%s=%s\n' "$1" "$2" >> .env.local
+          }
+          write VITE_NETEASE_API_BASE "$NETEASE_API_BASE"
+          write VITE_KUGOU_API_BASE "$KUGOU_API_BASE"
+          write VITE_QQ_API_BASE "$QQ_API_BASE"
+          if [ ! -s .env.local ]; then
+            echo "::warning::没有配置任何后端地址，这个包里的在线音乐（登录、搜索）不可用。"
+          fi
+          echo "--- .env.local ---"
+          sed 's/=.*/=<set>/' .env.local || true
+
       - name: Build web assets
         run: npm run build:ios
 

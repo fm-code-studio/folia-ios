@@ -12,6 +12,7 @@ import softFocus from './styleTransition/softFocus';
 import { alongProgress } from './styleTransition/layerTransition';
 import { holdTurns } from './preview/pictureTurns';
 import { useReducedMotionFor } from '../../hooks/useReducedMotionFor';
+import { isNativeRuntime } from '../../platform';
 
 interface VisualizerRendererProps extends VisualizerSharedProps {
     mode: VisualizerMode;
@@ -41,8 +42,19 @@ const VisualizerRenderer: React.FC<VisualizerRendererProps> = ({ mode, animateSt
     const resolvedProps = applyVisualizerTuning(shownMode, sharedProps, props.visualizerTunings);
     // A switch cuts where the host does not animate, in static mode, and where the user reduces
     // interface motion (the app's own setting, not the system's).
+    //
+    // It also cuts in the native shell. Soft focus keeps the leaving style mounted and drawing for
+    // the whole crossfade, and blurs it: on iOS that means two full-size WebGL scenes alive at once,
+    // each composited through an offscreen blur pass, on top of the background's own two contexts.
+    // The web view's GPU process gets killed for it, which the page never sees as an error - the app
+    // just disappears. One scene at a time is worth losing the crossfade on a phone.
     const reducedMotion = useReducedMotionFor('uiMicroMotion');
     const transition = animateStyleSwitch && !resolvedProps.staticMode && !reducedMotion ? softFocus : null;
+    // What the two layers (and the background) fade with. On iOS it is a cut: the crossfade keeps the
+    // leaving style mounted and drawing for its whole length, so two full-size WebGL scenes are alive
+    // at once, each composited through an offscreen blur - which the web view's GPU process is killed
+    // for. The song hand-off below keeps its transition: it animates inside one layer and mounts nothing.
+    const layerFade = isNativeRuntime() ? null : transition;
     // A blend's song hand-off, for the style that draws one (VisualizerSongHandoff). The background takes
     // the incoming song (its cover, seed and theme) when the blend starts, and changes with the transition
     // of any song change, played along the hand-off: as long as the blend, in step with the song it hands
@@ -51,8 +63,8 @@ const VisualizerRenderer: React.FC<VisualizerRendererProps> = ({ mode, animateSt
     const songHandoff = transition ? resolvedProps.songHandoff ?? null : null;
     const handoffProgress = songHandoff?.progress ?? null;
     const backgroundTransition = useMemo(
-        () => (transition && handoffProgress ? alongProgress(transition, handoffProgress) : transition),
-        [transition, handoffProgress],
+        () => (layerFade && handoffProgress ? alongProgress(layerFade, handoffProgress) : layerFade),
+        [layerFade, handoffProgress],
     );
     const styleProps = songHandoff || !resolvedProps.songHandoff ? resolvedProps : { ...resolvedProps, songHandoff: null };
     const backdropCover = useHandoffCover(songHandoff, resolvedProps.seed, resolvedProps.coverUrl);
@@ -61,10 +73,10 @@ const VisualizerRenderer: React.FC<VisualizerRendererProps> = ({ mode, animateSt
         : backdropCover === styleProps.coverUrl ? styleProps : { ...styleProps, coverUrl: backdropCover };
     // The styles while a switch waits for the new one's first frame and plays: kept here, so a background
     // change made with the switch knows it waits too.
-    const styleSwitch = useStyleSwitch(shownMode, transition);
+    const styleSwitch = useStyleSwitch(shownMode, layerFade);
     // From the choice until the new style is mounted (its code may still be on its way), no small
     // picture starts either; from then on its style layer holds them back (pictureTurns).
-    const switchAsked = transition !== null && mode !== shownMode;
+    const switchAsked = layerFade !== null && mode !== shownMode;
     useLayoutEffect(() => (switchAsked ? holdTurns() : undefined), [switchAsked]);
     // A style still leaving after a switch is drawn with the props tuned for it.
     const renderStyle = (styleMode: VisualizerMode) => getVisualizerRegistryEntry(styleMode).render(
@@ -83,7 +95,7 @@ const VisualizerRenderer: React.FC<VisualizerRendererProps> = ({ mode, animateSt
               */}
             <React.Suspense fallback={null}>
                 <VisualizerBackdrop entry={entry} props={backdropProps} transition={backgroundTransition} waits={styleSwitch.waits}>
-                    <VisualizerStyleTransition styleSwitch={styleSwitch} transition={transition} renderStyle={renderStyle} />
+                    <VisualizerStyleTransition styleSwitch={styleSwitch} transition={layerFade} renderStyle={renderStyle} />
                 </VisualizerBackdrop>
             </React.Suspense>
             <VisualizerHarmonyOverlay

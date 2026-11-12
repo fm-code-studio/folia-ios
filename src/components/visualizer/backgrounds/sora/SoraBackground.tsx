@@ -212,6 +212,18 @@ const SoraBackground: React.FC<SoraBackgroundProps> = ({ theme, isDaylight, paus
       if (bufferInfo.attribs && bufferInfo.attribs.a_index && bufferInfo.attribs.a_index.buffer) {
           gl.deleteBuffer(bufferInfo.attribs.a_index.buffer);
       }
+      // Hand the context back with the layer. Deleting the program and the buffer leaves the
+      // drawing buffer of a full-screen context alive until the canvas happens to be collected,
+      // and the page only keeps about sixteen contexts: switching styles past that starts
+      // dropping live ones.
+      //
+      // Only once the canvas has really left the page: StrictMode runs this cleanup without
+      // replacing the element, and losing the context there would leave the remount with a dead one.
+      const loseContext = gl.getExtension('WEBGL_lose_context');
+      queueMicrotask(() => {
+        if (!loseContext || canvas.isConnected || gl.isContextLost()) return;
+        loseContext.loseContext();
+      });
     };
   }, []);
 

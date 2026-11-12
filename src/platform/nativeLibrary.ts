@@ -54,6 +54,22 @@ export const foliaLocalUrl = (libraryId: string, path: string): string => {
 };
 
 /**
+ * Reads a `folia-local://` address.
+ *
+ * Capacitor's HTTP plugin replaces `window.fetch` so that cross-origin requests go
+ * through the native side, and that proxy only knows http(s): handed a `folia-local://`
+ * URL it builds a request nothing can answer. The patch keeps the web view's own fetch
+ * as `CapacitorWebFetch`; that one still goes through the app's scheme handler, which is
+ * where the bytes of a picked library actually come from.
+ */
+const nativeSchemeFetch = (url: string): Promise<Response> => {
+    if (typeof window === 'undefined') return fetch(url);
+    const original = (window as Window & { CapacitorWebFetch?: typeof fetch }).CapacitorWebFetch;
+    if (typeof original === 'function') return original.call(window, url);
+    return fetch(url);
+};
+
+/**
  * A file inside a picked library.
  *
  * `getFile()` reads the bytes over `folia-local://` rather than asking the plugin
@@ -76,7 +92,11 @@ export class NativeFileHandle {
     }
 
     async getFile(): Promise<File> {
-        const response = await fetch(this.foliaLocalUrl);
+        // The native HTTP plugin replaces `window.fetch` so cross-origin requests go
+        // through the native side. That proxy only knows http(s), so a `folia-local://`
+        // read has to take the web view's own fetch - kept as `CapacitorWebFetch` when
+        // the patch was installed.
+        const response = await nativeSchemeFetch(this.foliaLocalUrl);
         if (!response.ok) {
             throw new Error(`Could not read "${this.name}": ${response.status}`);
         }

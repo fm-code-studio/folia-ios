@@ -22,9 +22,35 @@ final class FoliaLocalSchemeHandler: NSObject, WKURLSchemeHandler {
     private let lock = NSLock()
     private var tasks: [ObjectIdentifier: URLSessionDataTask] = [:]
 
+    /// The headers that let the page read a `folia-local://` URL with `fetch`.
+    ///
+    /// The page runs on `capacitor://localhost`, so every read of a library file is a
+    /// cross-origin request. Without these the web view answers the page with a CORS
+    /// error instead of the bytes, and the library ends up with no songs in it.
+    private static let corsHeaders: [String: String] = [
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+        "Access-Control-Allow-Headers": "Range, Content-Type",
+        "Access-Control-Expose-Headers": "Content-Length, Content-Range, Accept-Ranges",
+    ]
+
     func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
         guard let url = urlSchemeTask.request.url else {
             urlSchemeTask.didFailWithError(FoliaLocalSchemeHandler.makeError(400, "Malformed URL"))
+            return
+        }
+
+        // A ranged read or a plain fetch both send a preflight first; it has no file
+        // behind it, only the permission to ask.
+        if urlSchemeTask.request.httpMethod == "OPTIONS" {
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 204,
+                httpVersion: "HTTP/1.1",
+                headerFields: FoliaLocalSchemeHandler.corsHeaders
+            )!
+            urlSchemeTask.didReceive(response)
+            urlSchemeTask.didFinish()
             return
         }
 
@@ -57,11 +83,11 @@ final class FoliaLocalSchemeHandler: NSObject, WKURLSchemeHandler {
                     url: url,
                     statusCode: 200,
                     httpVersion: "HTTP/1.1",
-                    headerFields: [
+                    headerFields: FoliaLocalSchemeHandler.corsHeaders.merging([
                         "Content-Type": contentType,
                         "Content-Length": String(size),
                         "Accept-Ranges": "bytes",
-                    ]
+                    ]) { _, new in new }
                 )!
                 urlSchemeTask.didReceive(response)
                 urlSchemeTask.didFinish()
@@ -71,10 +97,10 @@ final class FoliaLocalSchemeHandler: NSObject, WKURLSchemeHandler {
             let offset: Int
             let length: Int
             let statusCode: Int
-            var headers: [String: String] = [
+            var headers: [String: String] = FoliaLocalSchemeHandler.corsHeaders.merging([
                 "Content-Type": contentType,
                 "Accept-Ranges": "bytes",
-            ]
+            ]) { _, new in new }
 
             if let range = FoliaLocalSchemeHandler.parseRange(urlSchemeTask.request) {
                 // An open-ended range runs to the end of the file, and a range that

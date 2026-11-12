@@ -10,6 +10,9 @@
     "webContentsDebuggingEnabled": false
   },
   "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
     "SplashScreen": {
       "launchAutoHide": true,
       "launchShowDuration": 600,

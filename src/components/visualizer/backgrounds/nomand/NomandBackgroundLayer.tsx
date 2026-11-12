@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import type { PaperShaderElement } from '@paper-design/shaders';
 import {
     FlutedGlass,
@@ -17,7 +17,7 @@ import {
     resolveHalftoneInversion,
 } from './nomandShaderAdjustments';
 import { useFirstFrameDrawn } from '../../styleTransition/firstFrame';
-import { PAPER_SHADER_CONTEXT_ATTRIBUTES } from '../../../../utils/paperShaderContext';
+import { createPaperShaderReleaseRef, PAPER_SHADER_CONTEXT_ATTRIBUTES } from '../../../../utils/paperShaderContext';
 
 // src/components/visualizer/backgrounds/nomand/NomandBackgroundLayer.tsx
 // Renders the selected Paper image shader with the current theme palette.
@@ -73,6 +73,10 @@ const NomandBackgroundLayer: React.FC<NomandBackgroundLayerProps> = ({
     const tuning = { ...DEFAULT_NOMAND_BACKGROUND_TUNING, ...tuningOverride };
     const sourceUrl = resolveNomandSourceUrl(coverUrl, monetBackgroundImage, tuning);
     const shaderRef = useRef<PaperShaderElement | null>(null);
+    // The same ref, but one that gives the shader's WebGL context back when the layer goes: paper
+    // shaders disposes its program and drops the canvas, and the context itself otherwise waits for
+    // the garbage collector while the page's sixteen-context budget runs out.
+    const shaderReleaseRef = useMemo(() => createPaperShaderReleaseRef(shaderRef), []);
     useShaderDrawn(shaderRef, sourceUrl ? `${sourceUrl}:${tuning.effect}` : null);
 
     if (!sourceUrl) {
@@ -89,7 +93,7 @@ const NomandBackgroundLayer: React.FC<NomandBackgroundLayerProps> = ({
         const commonProps = {
             width: '100%' as const,
             height: '100%' as const,
-            ref: shaderRef,
+            ref: shaderReleaseRef,
             image: sourceUrl,
             fit: 'cover' as const,
             minPixelRatio: 1,

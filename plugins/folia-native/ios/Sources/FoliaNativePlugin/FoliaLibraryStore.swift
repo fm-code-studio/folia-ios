@@ -77,8 +77,32 @@ final class FoliaLibraryStore {
         // wrapper folder (the picker hands back the folder that was tapped, but some
         // providers wrap it). The contents are copied rather than the folder itself,
         // so the library's root is the folder the user chose.
-        let source = folderURL.hasDirectoryPath ? folderURL : folderURL.deletingLastPathComponent()
-        try fileManager.copyItem(at: source, to: destination)
+        //
+        // The children are copied one by one: `copyItem` refuses a destination that already
+        // exists, and the destination has just been created above; copying the folder itself
+        // would also leave the library one level deeper than its entries.
+        //
+        // `hasDirectoryPath` only says whether the URL ends in a slash, and the document picker
+        // hands a folder back without one - asking the file system is the only reliable answer.
+        let isDirectory = (try? folderURL.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+        let source = isDirectory ? folderURL : folderURL.deletingLastPathComponent()
+        do {
+            let children = try fileManager.contentsOfDirectory(
+                at: source,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+            for child in children {
+                try fileManager.copyItem(
+                    at: child,
+                    to: destination.appendingPathComponent(child.lastPathComponent)
+                )
+            }
+        } catch {
+            // A half-copied library would sit in the sandbox forever under an id nobody knows.
+            try? fileManager.removeItem(at: destination)
+            throw error
+        }
 
         libraryNames[libraryId] = name
         persistNames()
