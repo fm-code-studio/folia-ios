@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "device": {
+    "display": "QMAPI.775808.001",
+    "product": "iarim",
+    "device": "sagit",
+    "board": "eomam",
+    "model": "MI 6",
+    "fingerprint": "xiaomi/iarim/sagit:10/eomam.200122.001/3109674:user/release-keys",
+    "procVersion": "Linux 5.4.0-54-generic-6c929d30 (android-build@google.com)",
+    "imei": "145197476397625",
+    "brand": "Xiaomi",
+    "androidId": "6f565333af24183e",
+    "openUdid": "35f5627f620bc62fef29b0f87d3bc5a9",
+    "osRelease": "10",
+    "sdk": 29,
+    "qimei": "bb376b67a1b9f31fb0d9291110001b81ab09",
+    "qimei36": "cb7859abcbea48f48c1ce23810001f01ab07",
+    "qimeiSavedAt": 1794463619944,
+    "sessionUid": "6841249566",
+    "sessionSid": "20261112140700",
+    "sessionVkey": "745FA0C6AE2E266F76E421B4B07169C80B650152A82B94E82DB87D3AC0602D5F2AD297FB64DB0E39C0BE44E4D58E03A3EBFAA9DA345AEAF8"
+  }
+}

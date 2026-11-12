@@ -186,6 +186,7 @@ import { usePlaybackRuntimeRefs } from './components/app/playback/usePlaybackRun
 import { useElectronWindowChrome } from './hooks/useElectronWindowChrome';
 import { runTransportButtonAction, useTransportCommandRefs } from './components/app/playback/bridges/useTransportCommandRefs';
 import { useNativePlayerChrome } from './hooks/useNativePlayerChrome';
+import { useNativeBackgroundAudio } from './hooks/useNativeBackgroundAudio';
 import { useAccountReads } from './hooks/useAccountReads';
 import { useAudioOutputDevice } from './hooks/useAudioOutputDevice';
 import { useThemeQuickEditorContext } from './hooks/useThemeQuickEditorContext';
@@ -1442,6 +1443,9 @@ export default function App() {
     // playing when the screen locks, and the immersive stage. Nothing to do on the
     // web or the desktop.
     useNativePlayerChrome(transportCommandRefs);
+    // iOS suspends Web Audio when the app leaves the screen, and the decks sound through it;
+    // a silent loop of its own keeps the page's media session - and the music - alive.
+    useNativeBackgroundAudio();
 
     const mediaSessionOptions = {
         audioRef,

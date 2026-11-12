@@ -4,6 +4,7 @@ import { PlayerState } from '../../../../types';
 import { setStatusMessage as setStatusMsg } from '../../../../stores/useStatusMessageStore';
 import { setPlayerState } from '../../../../stores/usePlaybackStore';
 import { useTranslation } from 'react-i18next';
+import { isNativeRuntime } from '../../../../platform';
 import { usePlaybackStore } from '../../../../stores/usePlaybackStore';
 import { omni } from '../../../../services/onlineMusic/omni';
 import { currentTime } from '../../../../stores/motionSignals';
@@ -304,7 +305,12 @@ export function usePlaybackTransportController({
             if (!duringBlend && readCurrentSongKey() !== songKeyAtPress) return;
             settlePause(reason);
         };
-        if (isSounding && playbackFade.fadeOutThen(settleDeferredPause)) {
+        // The fade only advances while the AudioContext runs, and iOS suspends that context as
+        // soon as the app is not on screen. A ramp left mid-flight keeps the deck sounding while
+        // the button already says paused, and the next play comes back a second behind - which is
+        // heard as the tail of the track repeating. On the native shell the element is paused now.
+        const keepsFade = !isNativeRuntime();
+        if (keepsFade && isSounding && playbackFade.fadeOutThen(settleDeferredPause)) {
             setPlayerState(PlayerState.PAUSED);
             return;
         }

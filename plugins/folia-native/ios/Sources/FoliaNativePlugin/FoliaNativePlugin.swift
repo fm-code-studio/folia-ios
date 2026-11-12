@@ -27,7 +27,11 @@ public class FoliaNativePlugin: CAPPlugin, CAPBridgedPlugin {
     /// The call waiting for the document picker to come back.
     private var pendingPickerCall: CAPPluginCall?
 
+    /// Watches for the system taking the audio session away and for the app coming back.
+    private var sessionObservers: [NSObjectProtocol] = []
+
     public override func load() {
+        startWatchingAudioSession()
         FoliaNowPlayingCenter.shared.installRemoteCommands()
         FoliaNowPlayingCenter.shared.onRemoteCommand = { [weak self] command in
             self?.notifyListeners("remoteCommand", data: ["command": command])
@@ -152,13 +156,59 @@ public class FoliaNativePlugin: CAPPlugin, CAPBridgedPlugin {
     /// the app has to declare the background audio mode.
     @objc func configureAudioSession(_ call: CAPPluginCall) {
         do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [])
-            try session.setActive(true)
+            try Self.activatePlaybackSession()
             call.resolve()
         } catch {
             call.reject("Could not configure the audio session: \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - The audio session's lifetime
+
+    /// Puts the session into the playback category and makes it active.
+    ///
+    /// Called when the page asks for it, and again when the system hands the session back:
+    /// an interruption (a call, Siri, another app taking the output) deactivates it, and
+    /// nothing in the web view ever activates it again, so playback would stay silent until
+    /// the app is restarted.
+    private static func activatePlaybackSession() throws {
+        let session = AVAudioSession.sharedInstance()
+        try session.setCategory(.playback, mode: .default, options: [])
+        try session.setActive(true)
+    }
+
+    private func startWatchingAudioSession() {
+        guard sessionObservers.isEmpty else { return }
+        let center = NotificationCenter.default
+
+        sessionObservers.append(center.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { notification in
+            guard let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  let type = AVAudioSession.InterruptionType(rawValue: raw),
+                  type == .ended else { return }
+            do {
+                try FoliaNativePlugin.activatePlaybackSession()
+            } catch {
+                print("[FoliaNative] could not re-activate the audio session: \(error.localizedDescription)")
+            }
+        })
+
+        // Coming back to the foreground is the other moment the session can be inactive, for
+        // example after a long call: activating an already active session is a no-op.
+        sessionObservers.append(center.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            try? FoliaNativePlugin.activatePlaybackSession()
+        })
+    }
+
+    deinit {
+        sessionObservers.forEach { NotificationCenter.default.removeObserver($0) }
     }
 
     // MARK: - The backend addresses
